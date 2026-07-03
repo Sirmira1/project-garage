@@ -1,0 +1,626 @@
+// Garage Build Sheet — Prisma schema
+// Datasource: PostgreSQL. See .env.example for DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js (NextAuth) models
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  vehicles Vehicle[]
+  budgets  Budget[]
+
+  // Future social features (architecture only — not implemented)
+  following Follow[] @relation("Follower")
+  followers Follow[] @relation("Following")
+  likes     Like[]
+  comments  Comment[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Core domain
+// ---------------------------------------------------------------------------
+
+model Vehicle {
+  id           String    @id @default(cuid())
+  userId       String
+  name         String
+  nickname     String?
+  year         Int?
+  make         String?
+  model        String?
+  trim         String?
+  generation   String?
+  vin          String?
+  engine       String?
+  transmission String?
+  drivetrain   String?
+
+  // Performance baseline
+  stockHp      Int?
+  currentHp    Int?
+  targetHp     Int?
+  stockTorque  Int?
+  currentTorque Int?
+
+  // Weight (lb)
+  factoryWeight Int?
+  currentWeight Int?
+
+  // Value
+  purchasePrice Float?
+  purchaseDate  DateTime?
+  currentMileage Int?
+
+  coverImage   String?
+  color        String?
+
+  // Public build page architecture (social — future)
+  isPublic     Boolean  @default(false)
+  publicSlug   String?  @unique
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  modifications  Modification[]
+  serviceRecords ServiceRecord[]
+  goals          Goal[]
+  documents      Document[]
+  photos         Photo[]
+  albums         Album[]
+  timeline       TimelineEvent[]
+  shoppingItems  ShoppingItem[]
+  dynoRecords    DynoRecord[]
+  buildVersions  BuildVersion[]
+  journalEntries JournalEntry[]
+  fitments       FitmentRecord[]
+  notes          Note[]
+  expenses       Expense[]
+  likes          Like[]
+  comments       Comment[]
+
+  @@index([userId])
+}
+
+enum ModCategory {
+  ENGINE
+  INTAKE
+  EXHAUST
+  TURBO
+  SUSPENSION
+  WHEELS
+  TIRES
+  BRAKES
+  EXTERIOR
+  INTERIOR
+  AUDIO
+  LIGHTING
+  ELECTRONICS
+  COOLING
+  AERO
+  MISC
+}
+
+enum ModStatus {
+  WISHLIST
+  PLANNED
+  ORDERED
+  INSTALLED
+  REMOVED
+}
+
+// Interactive car diagram regions
+enum CarArea {
+  FRONT
+  SIDE
+  REAR
+  ENGINE_BAY
+  INTERIOR
+  UNDERBODY
+}
+
+model Modification {
+  id          String      @id @default(cuid())
+  vehicleId   String
+  name        String
+  category    ModCategory @default(MISC)
+  area        CarArea     @default(ENGINE_BAY)
+  brand       String?
+  description String?     @db.Text
+  cost        Float?
+  installDate DateTime?
+  status      ModStatus   @default(WISHLIST)
+  notes       String?     @db.Text
+  partNumber  String?
+  vendorId    String?
+  photos      Photo[]
+
+  buildVersionId String?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vendor       Vendor?       @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  buildVersion BuildVersion? @relation(fields: [buildVersionId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+  @@index([category])
+  @@index([status])
+}
+
+enum ServiceType {
+  OIL_CHANGE
+  BRAKES
+  TIRES
+  FLUIDS
+  INSPECTION
+  FILTER
+  BELT
+  SPARK_PLUGS
+  ALIGNMENT
+  OTHER
+}
+
+enum ServiceStatus {
+  PLANNED
+  DONE
+}
+
+model ServiceRecord {
+  id        String        @id @default(cuid())
+  vehicleId String
+  name      String
+  type      ServiceType   @default(OTHER)
+  status    ServiceStatus @default(DONE)
+  date      DateTime? // completion date (null while PLANNED)
+  mileage   Int?
+  cost      Float?
+  notes     String?       @db.Text
+  // Reminder / due targets
+  intervalMiles  Int?
+  intervalMonths Int?
+  nextDueDate    DateTime?
+  nextDueMileage Int?
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+enum GoalStatus {
+  ACTIVE
+  ACHIEVED
+  ARCHIVED
+}
+
+model Goal {
+  id          String     @id @default(cuid())
+  vehicleId   String
+  title       String
+  description String?     @db.Text
+  targetValue Float?
+  currentValue Float?
+  unit        String?
+  progress    Int        @default(0) // 0-100
+  status      GoalStatus @default(ACTIVE)
+  dueDate     DateTime?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+enum DocumentType {
+  DYNO_SHEET
+  RECEIPT
+  INVOICE
+  ALIGNMENT_SHEET
+  MANUAL
+  OTHER
+}
+
+model Document {
+  id        String       @id @default(cuid())
+  vehicleId String
+  name      String
+  type      DocumentType @default(OTHER)
+  url       String
+  fileSize  Int?
+  mimeType  String?
+
+  createdAt DateTime     @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+model Album {
+  id        String   @id @default(cuid())
+  vehicleId String
+  name      String
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  photos  Photo[]
+
+  @@index([vehicleId])
+}
+
+model Photo {
+  id             String   @id @default(cuid())
+  vehicleId      String
+  albumId        String?
+  modificationId String?
+  url            String
+  caption        String?
+  takenAt        DateTime?
+  sortOrder      Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  album        Album?        @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  modification Modification? @relation(fields: [modificationId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  name      String
+  website   String?
+  notes     String?
+
+  createdAt DateTime @default(now())
+
+  modifications Modification[]
+  shoppingItems ShoppingItem[]
+}
+
+enum TimelineEventType {
+  MOD_INSTALLED
+  MOD_ORDERED
+  SERVICE
+  DYNO
+  MILESTONE
+  JOURNAL
+  PHOTO
+}
+
+model TimelineEvent {
+  id        String            @id @default(cuid())
+  vehicleId String
+  type      TimelineEventType @default(MILESTONE)
+  title     String
+  description String?         @db.Text
+  date      DateTime
+  cost      Float?
+  imageUrl  String?
+
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([date])
+}
+
+// ---------------------------------------------------------------------------
+// Shopping list (kanban wishlist)
+// ---------------------------------------------------------------------------
+
+enum ShoppingStatus {
+  RESEARCHING
+  READY_TO_BUY
+  ORDERED
+  INSTALLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model ShoppingItem {
+  id          String         @id @default(cuid())
+  vehicleId   String
+  name        String
+  estimatedCost Float?
+  priority    Priority       @default(MEDIUM)
+  status      ShoppingStatus @default(RESEARCHING)
+  vendorUrl   String?
+  vendorId    String?
+  availability String?
+  sortOrder   Int            @default(0)
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vendor  Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Performance / dyno records
+// ---------------------------------------------------------------------------
+
+model DynoRecord {
+  id        String   @id @default(cuid())
+  vehicleId String
+  date      DateTime
+  hp        Float?
+  torque    Float?
+  zeroToSixty Float?
+  sixtyTo130  Float?
+  quarterMile Float?
+  notes     String?  @db.Text
+  documentUrl String?
+
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Build versions ("software releases for your car")
+// ---------------------------------------------------------------------------
+
+model BuildVersion {
+  id        String   @id @default(cuid())
+  vehicleId String
+  version   String // e.g. "1.0"
+  title     String?
+  notes     String?  @db.Text
+  releasedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  vehicle       Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  modifications Modification[]
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Garage journal
+// ---------------------------------------------------------------------------
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  vehicleId String
+  date      DateTime
+  title     String?
+  body      String   @db.Text
+
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Wheel / tire fitment history
+// ---------------------------------------------------------------------------
+
+model FitmentRecord {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  label       String? // "Summer setup"
+  wheelWidth  Float? // 9.5
+  wheelDiameter Float? // 18
+  offset      Int? // +38
+  tireSize    String? // 255/35R18
+  current     Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Rich text notes
+// ---------------------------------------------------------------------------
+
+model Note {
+  id        String   @id @default(cuid())
+  vehicleId String
+  title     String?
+  content   String   @db.Text // markdown
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Budget mode
+// ---------------------------------------------------------------------------
+
+model Budget {
+  id       String @id @default(cuid())
+  userId   String
+  year     Int
+  amount   Float
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+}
+
+// ---------------------------------------------------------------------------
+// Expenses — full cost of ownership (one-time + recurring)
+// ---------------------------------------------------------------------------
+
+enum ExpenseCategory {
+  PURCHASE
+  TAX
+  REGISTRATION
+  INSURANCE
+  FUEL
+  STORAGE
+  MAINTENANCE
+  REPAIR
+  PARTS
+  TIRES
+  WHEELS
+  LIGHTING
+  DETAILING
+  CAR_WASH
+  TINT
+  ACCESSORIES
+  TOOLS
+  TOLLS
+  PARKING
+  TOWING
+  INSPECTION
+  EMISSIONS
+  TRACK_DAY
+  DYNO
+  SHIPPING
+  MEMBERSHIP
+  WARRANTY
+  FINANCING
+  LOAN
+  MISC
+}
+
+enum Recurrence {
+  ONCE
+  MONTHLY
+  YEARLY
+}
+
+model Expense {
+  id         String          @id @default(cuid())
+  vehicleId  String
+  name       String
+  category   ExpenseCategory @default(MISC)
+  amount     Float
+  date       DateTime        @default(now())
+  recurrence Recurrence      @default(ONCE)
+  notes      String?         @db.Text
+
+  createdAt  DateTime        @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
+
+// ---------------------------------------------------------------------------
+// Social features — architecture only (not implemented in MVP)
+// ---------------------------------------------------------------------------
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  vehicleId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, vehicleId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  vehicleId String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+}
