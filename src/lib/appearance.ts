@@ -26,6 +26,11 @@ export const ACCENTS: Accent[] = [
 export const DEFAULT_ACCENT = "orange";
 export const ACCENT_STORAGE_KEY = "gbs-accent";
 
+/** Returns a valid accent id, falling back to the default. */
+export function normalizeAccent(id: string | null | undefined): string {
+  return ACCENTS.some((a) => a.id === id) ? (id as string) : DEFAULT_ACCENT;
+}
+
 export function applyAccent(id: string) {
   if (typeof document === "undefined") return;
   const accent = ACCENTS.find((a) => a.id === id) ?? ACCENTS[0];
@@ -34,11 +39,24 @@ export function applyAccent(id: string) {
   root.style.setProperty("--color-orange-dim", accent.dim);
 }
 
-/** Inline script (runs before paint) to apply the saved accent without flash. */
-export const ACCENT_INIT_SCRIPT = `(function(){try{var m=${JSON.stringify(
-  Object.fromEntries(ACCENTS.map((a) => [a.id, [a.color, a.dim]]))
-)};var id=localStorage.getItem(${JSON.stringify(
-  ACCENT_STORAGE_KEY
-)})||${JSON.stringify(
-  DEFAULT_ACCENT
-)};var c=m[id]||m.orange;var r=document.documentElement;r.style.setProperty('--color-orange',c[0]);r.style.setProperty('--color-orange-dim',c[1]);}catch(e){}})();`;
+/**
+ * Inline script (runs before paint) to apply the saved accent without a flash.
+ * When `serverId` is provided (the signed-in user's saved preference) it wins
+ * over localStorage and is mirrored into localStorage so it syncs across
+ * devices. When it's null (signed out) it falls back to localStorage/default.
+ */
+export function accentInitScript(serverId?: string | null): string {
+  const map = Object.fromEntries(ACCENTS.map((a) => [a.id, [a.color, a.dim]]));
+  return `(function(){try{var m=${JSON.stringify(map)};var s=${JSON.stringify(
+    serverId ?? null
+  )};var id=s||localStorage.getItem(${JSON.stringify(
+    ACCENT_STORAGE_KEY
+  )})||${JSON.stringify(
+    DEFAULT_ACCENT
+  )};if(s){try{localStorage.setItem(${JSON.stringify(
+    ACCENT_STORAGE_KEY
+  )},s);}catch(e){}}var c=m[id]||m.orange;var r=document.documentElement;r.style.setProperty('--color-orange',c[0]);r.style.setProperty('--color-orange-dim',c[1]);}catch(e){}})();`;
+}
+
+/** Backwards-compatible default script (localStorage only). */
+export const ACCENT_INIT_SCRIPT = accentInitScript();

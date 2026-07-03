@@ -203,7 +203,7 @@ export function TimelineTab({
             <DialogTitle>Add Timeline Event</DialogTitle>
           </DialogHeader>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="title">Title *</Label>
                 <Input id="title" name="title" required placeholder="First track day" />

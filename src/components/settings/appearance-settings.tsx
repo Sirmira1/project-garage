@@ -15,12 +15,25 @@ export function AppearanceSettings() {
     hydrate();
   }, [hydrate]);
 
+  function selectAccent(id: string) {
+    setAccent(id);
+    // Persist per-account so the choice syncs across devices.
+    fetch("/api/account/appearance", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accentColor: id }),
+    }).catch(() => {
+      /* non-blocking — local change already applied */
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div>
         <p className="text-sm text-steel">
           Garage Build Sheet runs in a dark, industrial theme. Pick the accent
-          color used across buttons, charts, and highlights.
+          color used across buttons, charts, and highlights. Your choice is
+          saved to your account and syncs across devices.
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -30,7 +43,7 @@ export function AppearanceSettings() {
             <button
               key={accent.id}
               type="button"
-              onClick={() => setAccent(accent.id)}
+              onClick={() => selectAccent(accent.id)}
               className={cn(
                 "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
                 isActive

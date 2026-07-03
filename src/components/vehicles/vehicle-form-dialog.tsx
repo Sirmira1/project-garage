@@ -164,7 +164,7 @@ export function VehicleFormDialog({
             vehicleId={vehicle?.id}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field name="name" label="Name" required placeholder="Project GTI" span defaultValue={vehicle?.name} />
             <Field name="nickname" label="Nickname" placeholder="Wolfsburg" defaultValue={vehicle?.nickname ?? undefined} />
             <Field name="year" label="Year" type="number" placeholder="2016" defaultValue={vehicle?.year ?? undefined} />

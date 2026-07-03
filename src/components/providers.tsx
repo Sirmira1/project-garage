@@ -8,11 +8,17 @@ import { KeyboardShortcuts } from "@/components/keyboard-shortcuts";
 import { Toaster } from "@/components/ui/toaster";
 import { useAccent } from "@/lib/accent-store";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({
+  children,
+  serverAccent,
+}: {
+  children: React.ReactNode;
+  serverAccent?: string | null;
+}) {
   const hydrateAccent = useAccent((s) => s.hydrate);
   useEffect(() => {
-    hydrateAccent();
-  }, [hydrateAccent]);
+    hydrateAccent(serverAccent);
+  }, [hydrateAccent, serverAccent]);
 
   const [queryClient] = useState(
     () =>

@@ -17,7 +17,7 @@ interface AccentStore {
   color: string;
   dim: string;
   setAccent: (id: string) => void;
-  hydrate: () => void;
+  hydrate: (serverId?: string | null) => void;
 }
 
 const initial = accentFor(DEFAULT_ACCENT);
@@ -40,13 +40,24 @@ export const useAccent = create<AccentStore>((set) => ({
     }
     set({ id, color: a.color, dim: a.dim });
   },
-  hydrate: () => {
+  hydrate: (serverId) => {
     if (typeof window === "undefined") return;
     let id = DEFAULT_ACCENT;
-    try {
-      id = localStorage.getItem(ACCENT_STORAGE_KEY) || DEFAULT_ACCENT;
-    } catch {
-      /* ignore */
+    if (serverId) {
+      // Signed-in preference wins and is mirrored to localStorage so it
+      // persists across devices/sessions.
+      id = serverId;
+      try {
+        localStorage.setItem(ACCENT_STORAGE_KEY, id);
+      } catch {
+        /* ignore */
+      }
+    } else {
+      try {
+        id = localStorage.getItem(ACCENT_STORAGE_KEY) || DEFAULT_ACCENT;
+      } catch {
+        /* ignore */
+      }
     }
     const a = accentFor(id);
     set({ id, color: a.color, dim: a.dim });

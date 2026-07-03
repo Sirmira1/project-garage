@@ -88,7 +88,7 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
               {vehicle.drivetrain && <Chip label={vehicle.drivetrain} />}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" onClick={() => setEditOpen(true)}>
               <Pencil /> Edit
             </Button>
