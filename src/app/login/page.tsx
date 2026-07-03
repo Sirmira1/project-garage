@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +81,12 @@ export default function LoginPage() {
           </Button>
           <p className="text-center text-xs text-steel">
             Demo account is pre-filled. Just hit sign in.
+          </p>
+          <p className="text-center text-xs text-steel">
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-orange hover:underline">
+              Create one
+            </Link>
           </p>
         </form>
       </div>
