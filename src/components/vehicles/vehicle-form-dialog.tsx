@@ -159,7 +159,10 @@ export function VehicleFormDialog({
           onSubmit={onSubmit}
           className="space-y-4"
         >
-          <ImageField defaultValue={vehicle?.coverImage ?? ""} />
+          <ImageField
+            defaultValue={vehicle?.coverImage ?? ""}
+            vehicleId={vehicle?.id}
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <Field name="name" label="Name" required placeholder="Project GTI" span defaultValue={vehicle?.name} />

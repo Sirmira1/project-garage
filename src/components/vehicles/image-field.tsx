@@ -6,20 +6,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { fileToResizedDataUrl } from "@/lib/image";
-import { ImagePlus, Link2, Loader2, Trash2, Car } from "lucide-react";
+import { GalleryPickerDialog } from "@/components/vehicles/gallery-picker-dialog";
+import { ImagePlus, Images, Link2, Loader2, Trash2, Car } from "lucide-react";
 
 export function ImageField({
   name = "coverImage",
   defaultValue = "",
   label = "Cover Image",
+  vehicleId,
 }: {
   name?: string;
   defaultValue?: string;
   label?: string;
+  vehicleId?: string;
 }) {
   const [value, setValue] = useState(defaultValue);
   const [showUrl, setShowUrl] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -87,6 +91,16 @@ export function ImageField({
             >
               <ImagePlus /> Upload
             </Button>
+            {vehicleId && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setGalleryOpen(true)}
+              >
+                <Images /> Gallery
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -119,6 +133,17 @@ export function ImageField({
           placeholder="https://…"
           value={value.startsWith("data:") ? "" : value}
           onChange={(e) => setValue(e.target.value)}
+        />
+      )}
+
+      {vehicleId && (
+        <GalleryPickerDialog
+          vehicleId={vehicleId}
+          open={galleryOpen}
+          onOpenChange={setGalleryOpen}
+          onSelect={(urls) => {
+            if (urls[0]) setValue(urls[0]);
+          }}
         />
       )}
     </div>

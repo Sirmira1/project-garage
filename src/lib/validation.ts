@@ -354,6 +354,10 @@ export const timelineSchema = z.object({
     .transform((v) => (typeof v === "string" ? new Date(v) : v)),
   cost: optionalNumber,
   imageUrl: optionalString,
+  imageUrls: z
+    .array(z.string().trim().min(1))
+    .optional()
+    .transform((v) => v ?? undefined),
 });
 
 // ---------------------------------------------------------------------------

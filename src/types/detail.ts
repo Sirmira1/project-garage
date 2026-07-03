@@ -70,6 +70,7 @@ export interface TimelineDTO {
   date: string;
   cost: number | null;
   imageUrl: string | null;
+  imageUrls: string[];
 }
 
 export interface ShoppingDTO {

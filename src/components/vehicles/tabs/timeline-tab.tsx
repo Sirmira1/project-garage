@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { MultiImageField } from "@/components/vehicles/multi-image-field";
 import { Clock, Plus, Trash2, Loader2 } from "lucide-react";
 
 const EVENT_TYPES = [
@@ -47,6 +48,7 @@ export function TimelineTab({
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("MILESTONE");
+  const [images, setImages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const { data: events = initialEvents } = useQuery<TimelineDTO[]>({
@@ -76,6 +78,7 @@ export function TimelineTab({
       qc.invalidateQueries({ queryKey: ["timeline", vehicleId] });
       toast("Event added", { variant: "success" });
       setOpen(false);
+      setImages([]);
     },
     onError: (e: Error) => setError(e.message),
   });
@@ -100,7 +103,7 @@ export function TimelineTab({
       description: get("description"),
       date: get("date"),
       cost: get("cost"),
-      imageUrl: get("imageUrl"),
+      imageUrls: images,
     });
   }
 
@@ -147,14 +150,36 @@ export function TimelineTab({
                 {e.description && (
                   <p className="mt-1 text-sm text-steel">{e.description}</p>
                 )}
-                {e.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={e.imageUrl}
-                    alt={e.title}
-                    className="mt-3 h-40 w-full rounded-md object-cover"
-                  />
-                )}
+                {(() => {
+                  const imgs = [
+                    ...(e.imageUrl ? [e.imageUrl] : []),
+                    ...(e.imageUrls ?? []),
+                  ];
+                  if (imgs.length === 0) return null;
+                  return (
+                    <div
+                      className={
+                        imgs.length === 1
+                          ? "mt-3"
+                          : "mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3"
+                      }
+                    >
+                      {imgs.map((url, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={`${url.slice(0, 24)}-${i}`}
+                          src={url}
+                          alt={e.title}
+                          className={
+                            imgs.length === 1
+                              ? "max-h-[28rem] w-full rounded-md bg-asphalt-3 object-contain"
+                              : "aspect-square w-full rounded-md object-cover"
+                          }
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
                 {e.cost != null && (
                   <p className="mt-2 font-mono text-sm text-orange">
                     {formatCurrency(e.cost)}
@@ -166,7 +191,13 @@ export function TimelineTab({
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) setImages([]);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Timeline Event</DialogTitle>
@@ -200,13 +231,17 @@ export function TimelineTab({
                 <Label htmlFor="cost">Cost (optional)</Label>
                 <Input id="cost" name="cost" type="number" placeholder="0" />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="imageUrl">Image URL (optional)</Label>
-                <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://…" />
-              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" name="description" rows={2} />
+              </div>
+              <div className="col-span-2">
+                <MultiImageField
+                  vehicleId={vehicleId}
+                  value={images}
+                  onChange={setImages}
+                  label="Photos (optional)"
+                />
               </div>
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
