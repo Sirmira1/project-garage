@@ -38,7 +38,7 @@ export default async function SettingsPage() {
           <CardContent className="space-y-4">
             <AccountForm
               initialName={user?.name ?? "Demo Driver"}
-              initialEmail={user?.email ?? "demo@garage.dev"}
+              initialEmail={user?.email ?? ""}
               hasPassword={!!user?.passwordHash}
             />
             <div className="border-t border-[color:var(--border)] pt-4">

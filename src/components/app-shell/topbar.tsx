@@ -39,7 +39,7 @@ export function Topbar() {
   const name =
     account?.name ?? session?.user?.name ?? "Demo Driver";
   const email =
-    account?.email ?? session?.user?.email ?? "demo@garage.dev";
+    account?.email ?? session?.user?.email ?? "";
   const image = account?.image ?? session?.user?.image ?? null;
   const initials = name
     .split(" ")

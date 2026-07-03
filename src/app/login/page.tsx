@@ -12,8 +12,8 @@ import { toast } from "@/components/ui/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("demo@garage.dev");
-  const [password, setPassword] = useState("garage123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -79,9 +79,6 @@ export default function LoginPage() {
             {loading && <Loader2 className="size-4 animate-spin" />}
             Sign in
           </Button>
-          <p className="text-center text-xs text-steel">
-            Demo account is pre-filled. Just hit sign in.
-          </p>
           <p className="text-center text-xs text-steel">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-orange hover:underline">
