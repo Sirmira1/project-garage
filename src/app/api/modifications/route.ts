@@ -1,27 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/session";
+import { canAccessVehicle } from "@/lib/api-helpers";
 import { modificationSchema } from "@/lib/validation";
 
 export async function GET(req: Request) {
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(req.url);
   const vehicleId = searchParams.get("vehicleId");
   if (!vehicleId)
     return NextResponse.json({ error: "vehicleId required" }, { status: 400 });
 
-  const vehicle = await prisma.vehicle.findFirst({
-    where: { id: vehicleId, userId },
-    select: { id: true },
-  });
-  if (!vehicle)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!(await canAccessVehicle(vehicleId, req, false))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const mods = await prisma.modification.findMany({
     where: { vehicleId },
@@ -31,13 +21,6 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => null);
   const parsed = modificationSchema.safeParse(body);
   if (!parsed.success) {
@@ -47,12 +30,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const vehicle = await prisma.vehicle.findFirst({
-    where: { id: parsed.data.vehicleId, userId },
-    select: { id: true },
-  });
-  if (!vehicle)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!(await canAccessVehicle(parsed.data.vehicleId, req, true))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const mod = await prisma.modification.create({ data: parsed.data });
 

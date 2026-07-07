@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  currentUserId,
+  canAccessVehicle,
   invalid,
   notFound,
   unauthorized,
@@ -13,12 +13,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const userId = await currentUserId();
-  if (!userId) return unauthorized();
-  const existing = await prisma.goal.findFirst({
-    where: { id, vehicle: { userId } },
+  const existing = await prisma.goal.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
   });
   if (!existing) return notFound();
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) return unauthorized();
   const body = await req.json().catch(() => null);
   const parsed = goalUpdateSchema.safeParse(body);
   if (!parsed.success) return invalid(parsed.error.flatten());
@@ -29,16 +29,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const userId = await currentUserId();
-  if (!userId) return unauthorized();
-  const existing = await prisma.goal.findFirst({
-    where: { id, vehicle: { userId } },
+  const existing = await prisma.goal.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
   });
   if (!existing) return notFound();
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) return unauthorized();
   await prisma.goal.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

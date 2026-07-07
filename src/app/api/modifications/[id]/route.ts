@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/session";
+import { canAccessVehicle } from "@/lib/api-helpers";
 import { modificationUpdateSchema } from "@/lib/validation";
-
-async function ownMod(id: string, userId: string) {
-  return prisma.modification.findFirst({
-    where: { id, vehicle: { userId } },
-  });
-}
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const existing = await ownMod(id, userId);
+  const existing = await prisma.modification.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
+  });
   if (!existing)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = modificationUpdateSchema.safeParse(body);
@@ -45,20 +39,20 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  let userId: string;
-  try {
-    userId = await requireUserId();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const existing = await ownMod(id, userId);
+  const existing = await prisma.modification.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
+  });
   if (!existing)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   await prisma.modification.delete({ where: { id } });
   return NextResponse.json({ ok: true });

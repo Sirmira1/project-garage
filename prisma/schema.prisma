@@ -117,6 +117,9 @@ model Vehicle {
   // Public build page architecture (social — future)
   isPublic     Boolean  @default(false)
   publicSlug   String?  @unique
+  shareEnabled Boolean  @default(false)
+  shareSlug    String?  @unique
+  shareEditToken String?
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

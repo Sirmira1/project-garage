@@ -23,9 +23,11 @@ import { toast } from "@/components/ui/use-toast";
 export function BuildSheetTab({
   vehicleId,
   initialMods,
+  canEdit = true,
 }: {
   vehicleId: string;
   initialMods: ModDTO[];
+  canEdit?: boolean;
 }) {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -100,9 +102,11 @@ export function BuildSheetTab({
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
-          <Plus /> Add Modification
-        </Button>
+        {canEdit && (
+          <Button onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
+            <Plus /> Add Modification
+          </Button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -111,9 +115,11 @@ export function BuildSheetTab({
           title="No modifications yet"
           description="Log your first mod — from a simple intake to a full engine build."
         >
-          <Button className="mt-2" onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
-            <Plus /> Add Modification
-          </Button>
+          {canEdit && (
+            <Button className="mt-2" onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
+              <Plus /> Add Modification
+            </Button>
+          )}
         </EmptyState>
       ) : (
         <div className="space-y-6">
@@ -165,42 +171,48 @@ export function BuildSheetTab({
                           </p>
                         )}
                       </div>
-                      <Select
-                        value={m.status}
-                        onValueChange={(v) =>
-                          updateStatus.mutate({ id: m.id, status: v as ModStatus })
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-32 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {MOD_STATUSES.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              {s.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-steel hover:text-orange"
-                        onClick={() => {
-                          setEditingMod(m);
-                          setDialogOpen(true);
-                        }}
-                      >
-                        <Pencil />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-steel hover:text-red-400"
-                        onClick={() => remove.mutate(m.id)}
-                      >
-                        <Trash2 />
-                      </Button>
+                      {canEdit && (
+                        <Select
+                          value={m.status}
+                          onValueChange={(v) =>
+                            updateStatus.mutate({ id: m.id, status: v as ModStatus })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-32 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOD_STATUSES.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                {s.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-steel hover:text-orange"
+                          onClick={() => {
+                            setEditingMod(m);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          <Pencil />
+                        </Button>
+                      )}
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-steel hover:text-red-400"
+                          onClick={() => remove.mutate(m.id)}
+                        >
+                          <Trash2 />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -210,15 +222,17 @@ export function BuildSheetTab({
         </div>
       )}
 
-      <AddModDialog
-        vehicleId={vehicleId}
-        open={dialogOpen}
-        onOpenChange={(o) => {
-          setDialogOpen(o);
-          if (!o) setEditingMod(null);
-        }}
-        mod={editingMod}
-      />
+      {canEdit && (
+        <AddModDialog
+          vehicleId={vehicleId}
+          open={dialogOpen}
+          onOpenChange={(o) => {
+            setDialogOpen(o);
+            if (!o) setEditingMod(null);
+          }}
+          mod={editingMod}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,14 @@ import type { VehicleDetailData, ModDTO } from "@/types/detail";
 import { vehicleTabs } from "@/lib/nav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { OverviewTab } from "@/components/vehicles/tabs/overview-tab";
 import { BuildSheetTab } from "@/components/vehicles/tabs/build-sheet-tab";
 import { CarDiagramTab } from "@/components/vehicles/tabs/car-diagram-tab";
@@ -28,13 +36,36 @@ import { computeBuildStats } from "@/lib/analytics";
 import { formatCurrency, cn } from "@/lib/utils";
 import { BUILD_STATUS_META } from "@/lib/constants";
 import { toast } from "@/components/ui/use-toast";
-import { ArrowLeft, Download, Car, Pencil, FileText, Warehouse } from "lucide-react";
+import { ArrowLeft, Download, Car, Pencil, FileText, Warehouse, Share2, Copy } from "lucide-react";
 
-export function VehicleDetail({ data }: { data: VehicleDetailData }) {
+type AccessMode = "owner" | "view" | "edit";
+
+export function VehicleDetail({
+  data,
+  access = "owner",
+  shareContext,
+}: {
+  data: VehicleDetailData;
+  access?: AccessMode;
+  shareContext?: { shareSlug: string; shareEdit?: string };
+}) {
   const { vehicle } = data;
   const qc = useQueryClient();
   const router = useRouter();
+  const canEdit = access === "owner" || access === "edit";
+  const isOwner = access === "owner";
   const [editOpen, setEditOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [allowEdit, setAllowEdit] = useState(false);
+  const [shareLinks, setShareLinks] = useState<{ viewUrl: string | null; editUrl: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!shareContext?.shareSlug) return;
+    document.cookie = `garage_share_slug=${encodeURIComponent(shareContext.shareSlug)}; path=/; max-age=604800; samesite=lax`;
+    if (shareContext.shareEdit) {
+      document.cookie = `garage_share_edit=${encodeURIComponent(shareContext.shareEdit)}; path=/; max-age=604800; samesite=lax`;
+    }
+  }, [shareContext]);
 
   const moveToGarage = useMutation({
     mutationFn: async () => {
@@ -66,6 +97,42 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
     initialData: data.modifications,
   });
 
+  const loadShare = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/vehicles/${vehicle.id}/share`);
+      if (!res.ok) throw new Error("Failed to load share links");
+      return res.json() as Promise<{ enabled: boolean; viewUrl: string | null; editUrl: string | null }>;
+    },
+    onSuccess: (r) => {
+      setShareLinks({ viewUrl: r.viewUrl, editUrl: r.editUrl });
+      setAllowEdit(!!r.editUrl);
+    },
+    onError: () => toast("Could not load share settings", { variant: "error" }),
+  });
+
+  const saveShare = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/vehicles/${vehicle.id}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: true, allowEdit }),
+      });
+      if (!res.ok) throw new Error("Failed to save share settings");
+      return res.json() as Promise<{ enabled: boolean; viewUrl: string | null; editUrl: string | null }>;
+    },
+    onSuccess: (r) => {
+      setShareLinks({ viewUrl: r.viewUrl, editUrl: r.editUrl });
+      toast("Share link updated", { variant: "success" });
+    },
+    onError: () => toast("Could not save share settings", { variant: "error" }),
+  });
+
+  function copy(text: string | null) {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    toast("Copied link", { variant: "success" });
+  }
+
   const stats = computeBuildStats(mods, data.expenses);
   const modsSpent = computeBuildStats(mods).totalSpent;
   const heroCost =
@@ -79,10 +146,10 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
   return (
     <div className="mx-auto max-w-7xl animate-fade-in">
       <Link
-        href="/garage"
+        href={isOwner ? "/garage" : "/"}
         className="mb-4 inline-flex items-center gap-1.5 text-sm text-steel hover:text-paper"
       >
-        <ArrowLeft className="size-4" /> Garage
+        <ArrowLeft className="size-4" /> {isOwner ? "Garage" : "Home"}
       </Link>
 
       {/* Hero */}
@@ -129,7 +196,7 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {vehicle.buildStatus !== "OWNED" && (
+            {canEdit && vehicle.buildStatus !== "OWNED" && (
               <Button
                 onClick={() => moveToGarage.mutate()}
                 disabled={moveToGarage.isPending}
@@ -137,9 +204,22 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
                 <Warehouse /> Move to Garage
               </Button>
             )}
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
+            {isOwner && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShareOpen(true);
+                  loadShare.mutate();
+                }}
+              >
+                <Share2 /> Share
+              </Button>
+            )}
+            {canEdit && (
+              <Button variant="secondary" onClick={() => setEditOpen(true)}>
               <Pencil /> Edit
-            </Button>
+              </Button>
+            )}
             <Button asChild variant="secondary">
               <a
                 href={`/report/${vehicle.id}`}
@@ -149,22 +229,74 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
                 <FileText /> Report
               </a>
             </Button>
-            <Button
+            {canEdit && (
+              <Button
               variant="secondary"
               onClick={() => exportModsCsv(title, mods)}
             >
               <Download /> Export CSV
-            </Button>
-            <DeleteVehicleButton vehicleId={vehicle.id} vehicleName={title} />
+              </Button>
+            )}
+            {canEdit && <DeleteVehicleButton vehicleId={vehicle.id} vehicleName={title} />}
           </div>
         </div>
       </div>
 
-      <VehicleFormDialog
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        vehicle={vehicle}
-      />
+      {canEdit && (
+        <VehicleFormDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          vehicle={vehicle}
+        />
+      )}
+
+      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Share this build</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-steel">
+              Viewers with this link can see this car and all tabs. You can optionally grant edit permission with a separate link.
+            </p>
+            <label className="flex items-center gap-2 text-sm text-paper">
+              <input
+                type="checkbox"
+                checked={allowEdit}
+                onChange={(e) => setAllowEdit(e.target.checked)}
+              />
+              Allow editing with edit link
+            </label>
+            <Button onClick={() => saveShare.mutate()} disabled={saveShare.isPending}>
+              Save share settings
+            </Button>
+
+            {shareLinks?.viewUrl && (
+              <div className="space-y-1.5">
+                <Label>View-only link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={shareLinks.viewUrl} />
+                  <Button type="button" variant="secondary" onClick={() => copy(shareLinks.viewUrl)}>
+                    <Copy />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {allowEdit && shareLinks?.editUrl && (
+              <div className="space-y-1.5">
+                <Label>Edit link</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={shareLinks.editUrl} />
+                  <Button type="button" variant="secondary" onClick={() => copy(shareLinks.editUrl)}>
+                    <Copy />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="mt-6">
@@ -185,7 +317,7 @@ export function VehicleDetail({ data }: { data: VehicleDetailData }) {
           />
         </TabsContent>
         <TabsContent value="build">
-          <BuildSheetTab vehicleId={vehicle.id} initialMods={data.modifications} />
+          <BuildSheetTab vehicleId={vehicle.id} initialMods={data.modifications} canEdit={canEdit} />
         </TabsContent>
         <TabsContent value="diagram">
           <CarDiagramTab mods={mods} />

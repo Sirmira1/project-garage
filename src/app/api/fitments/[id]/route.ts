@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { currentUserId, notFound, unauthorized } from "@/lib/api-helpers";
+import { canAccessVehicle, notFound, unauthorized } from "@/lib/api-helpers";
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const userId = await currentUserId();
-  if (!userId) return unauthorized();
-  const existing = await prisma.fitmentRecord.findFirst({
-    where: { id, vehicle: { userId } },
+  const existing = await prisma.fitmentRecord.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
   });
   if (!existing) return notFound();
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) return unauthorized();
 
   const body = await req.json().catch(() => ({}));
   // Supports marking a setup as the current one.
@@ -31,16 +31,16 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const userId = await currentUserId();
-  if (!userId) return unauthorized();
-  const existing = await prisma.fitmentRecord.findFirst({
-    where: { id, vehicle: { userId } },
+  const existing = await prisma.fitmentRecord.findUnique({
+    where: { id },
+    select: { id: true, vehicleId: true },
   });
   if (!existing) return notFound();
+  if (!(await canAccessVehicle(existing.vehicleId, req, true))) return unauthorized();
   await prisma.fitmentRecord.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

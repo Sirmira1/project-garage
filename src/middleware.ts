@@ -14,6 +14,10 @@ export async function middleware(request: NextRequest) {
   }
   const pathname = request.nextUrl.pathname;
 
+  if (pathname.startsWith("/share/")) {
+    return NextResponse.next();
+  }
+
   // Allow public routes
   if (publicRoutes.includes(pathname)) {
     // If already logged in, redirect to dashboard
