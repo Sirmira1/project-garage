@@ -38,16 +38,12 @@ const DialogContent = React.forwardRef<
         className
       )}
       onInteractOutside={(e) => {
-        // Keep the dialog open when interacting with portalled poppers
-        // (Select / DropdownMenu content live outside the dialog in the DOM).
-        const target = e.target as Element | null;
-        if (
-          target?.closest(
-            "[data-radix-popper-content-wrapper],[data-radix-select-viewport],[role='listbox']"
-          )
-        ) {
-          e.preventDefault();
-        }
+        // Don't dismiss the dialog on outside pointer/focus interactions. While a
+        // Radix Select/DropdownMenu is open it makes the whole dialog
+        // `pointer-events: none`, so a click aimed at a field is misread as an
+        // "outside" click and would close the form. The dialog still closes via
+        // the Escape key, the Cancel button, the ✕, or a successful submit.
+        e.preventDefault();
       }}
       {...props}
     >

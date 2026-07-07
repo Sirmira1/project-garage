@@ -32,7 +32,14 @@ export function OverviewTab({
   // HP tracker
   const stockHp = vehicle.stockHp ?? 0;
   const currentHp = vehicle.currentHp ?? stockHp;
-  const targetHp = vehicle.targetHp ?? currentHp;
+  // targetHp is free text (e.g. "320", "1000+", "1xxx"). Parse a number for the
+  // progress math — treat x/X as 0 — but keep the raw text for display.
+  const targetHpLabel = vehicle.targetHp?.trim() || null;
+  const parsedTarget = targetHpLabel
+    ? parseInt(targetHpLabel.replace(/[xX]/g, "0").replace(/[^0-9]/g, ""), 10)
+    : NaN;
+  const targetHp =
+    Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : currentHp;
   const hpSpan = Math.max(targetHp - stockHp, 1);
   const hpProgress = clamp(((currentHp - stockHp) / hpSpan) * 100);
   const hpGain = currentHp - stockHp;
@@ -98,7 +105,7 @@ export function OverviewTab({
             <div className="mt-2 flex justify-between font-mono text-xs">
               <span className="text-steel">Stock {stockHp || "—"}</span>
               <span className="text-orange">Current {currentHp || "—"}</span>
-              <span className="text-steel">Target {targetHp || "—"}</span>
+              <span className="text-steel">Target {targetHpLabel || "—"}</span>
             </div>
           </CardContent>
         </Card>

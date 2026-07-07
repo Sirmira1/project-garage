@@ -1,6 +1,9 @@
+import type { BuildStatus } from "@prisma/client";
+
 export interface VehicleWithCount {
   id: string;
   name: string;
+  buildStatus: BuildStatus;
   nickname: string | null;
   year: number | null;
   make: string | null;
@@ -12,7 +15,7 @@ export interface VehicleWithCount {
   transmission: string | null;
   currentHp: number | null;
   stockHp: number | null;
-  targetHp: number | null;
+  targetHp: string | null;
   currentWeight: number | null;
   factoryWeight: number | null;
   purchasePrice: number | null;

@@ -5,17 +5,63 @@ import type {
   CarArea,
   ServiceType,
   DocumentType,
+  BuildStatus,
 } from "@prisma/client";
+
+export const BUILD_STATUSES: {
+  value: BuildStatus;
+  label: string;
+  description: string;
+  className: string;
+}[] = [
+  {
+    value: "OWNED",
+    label: "Owned",
+    description: "A car you have right now",
+    className: "text-emerald-400 border-emerald-400/40",
+  },
+  {
+    value: "FUTURE",
+    label: "Future Build",
+    description: "A car you plan to buy or build",
+    className: "text-sky-400 border-sky-400/40",
+  },
+  {
+    value: "WISHLIST",
+    label: "Wishlist",
+    description: "A dream car you're daydreaming about",
+    className: "text-orange border-orange/40",
+  },
+];
+
+export const BUILD_STATUS_META: Record<
+  BuildStatus,
+  { label: string; description: string; className: string }
+> = Object.fromEntries(
+  BUILD_STATUSES.map((s) => [
+    s.value,
+    { label: s.label, description: s.description, className: s.className },
+  ])
+) as Record<BuildStatus, { label: string; description: string; className: string }>;
 
 export const MOD_CATEGORIES: { value: ModCategory; label: string }[] = [
   { value: "ENGINE", label: "Engine" },
   { value: "INTAKE", label: "Intake" },
   { value: "EXHAUST", label: "Exhaust" },
   { value: "TURBO", label: "Turbo" },
+  { value: "SUPERCHARGER", label: "Supercharger" },
+  { value: "FUELING", label: "Fueling" },
+  { value: "ECU_TUNING", label: "ECU / Tuning" },
+  { value: "DRIVELINE", label: "Driveline" },
+  { value: "DIFFERENTIAL", label: "Differential" },
+  { value: "CLUTCH", label: "Clutch" },
+  { value: "TRANSMISSION", label: "Transmission" },
   { value: "SUSPENSION", label: "Suspension" },
   { value: "WHEELS", label: "Wheels" },
   { value: "TIRES", label: "Tires" },
   { value: "BRAKES", label: "Brakes" },
+  { value: "SAFETY", label: "Safety" },
+  { value: "TRACTION", label: "Traction" },
   { value: "EXTERIOR", label: "Exterior" },
   { value: "INTERIOR", label: "Interior" },
   { value: "AUDIO", label: "Audio" },

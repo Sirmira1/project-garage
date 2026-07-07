@@ -95,7 +95,7 @@ model Vehicle {
   // Performance baseline
   stockHp      Int?
   currentHp    Int?
-  targetHp     Int?
+  targetHp     String?
   stockTorque  Int?
   currentTorque Int?
 
@@ -110,6 +110,9 @@ model Vehicle {
 
   coverImage   String?
   color        String?
+
+  // Whether this is a car you own, a planned future build, or a wishlist/dream car
+  buildStatus  BuildStatus @default(OWNED)
 
   // Public build page architecture (social — future)
   isPublic     Boolean  @default(false)
@@ -139,15 +142,30 @@ model Vehicle {
   @@index([userId])
 }
 
+enum BuildStatus {
+  OWNED
+  FUTURE
+  WISHLIST
+}
+
 enum ModCategory {
   ENGINE
   INTAKE
   EXHAUST
   TURBO
+  SUPERCHARGER
+  FUELING
+  ECU_TUNING
+  DRIVELINE
+  DIFFERENTIAL
+  CLUTCH
+  TRANSMISSION
   SUSPENSION
   WHEELS
   TIRES
   BRAKES
+  SAFETY
+  TRACTION
   EXTERIOR
   INTERIOR
   AUDIO
@@ -189,6 +207,7 @@ model Modification {
   status      ModStatus   @default(WISHLIST)
   notes       String?     @db.Text
   partNumber  String?
+  productUrl  String?
   vendorId    String?
   photos      Photo[]
 

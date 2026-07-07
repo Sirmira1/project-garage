@@ -16,7 +16,7 @@ import {
 import { ModStatusBadge } from "@/components/vehicles/mod-status-badge";
 import { AddModDialog } from "@/components/vehicles/add-mod-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { Plus, Trash2, Wrench } from "lucide-react";
+import { Plus, Trash2, Wrench, ExternalLink, Pencil } from "lucide-react";
 import type { ModStatus } from "@prisma/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -29,6 +29,7 @@ export function BuildSheetTab({
 }) {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingMod, setEditingMod] = useState<ModDTO | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: mods = initialMods } = useQuery<ModDTO[]>({
@@ -99,7 +100,7 @@ export function BuildSheetTab({
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
           <Plus /> Add Modification
         </Button>
       </div>
@@ -110,7 +111,7 @@ export function BuildSheetTab({
           title="No modifications yet"
           description="Log your first mod — from a simple intake to a full engine build."
         >
-          <Button className="mt-2" onClick={() => setDialogOpen(true)}>
+          <Button className="mt-2" onClick={() => { setEditingMod(null); setDialogOpen(true); }}>
             <Plus /> Add Modification
           </Button>
         </EmptyState>
@@ -143,6 +144,17 @@ export function BuildSheetTab({
                       </p>
                     </div>
                     <div className="flex items-center gap-3 sm:gap-4">
+                      {m.productUrl && (
+                        <a
+                          href={m.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Open link"
+                          className="text-steel hover:text-orange"
+                        >
+                          <ExternalLink className="size-4" />
+                        </a>
+                      )}
                       <div className="text-right">
                         <p className="font-mono text-sm text-paper">
                           {formatCurrency(m.cost)}
@@ -173,6 +185,17 @@ export function BuildSheetTab({
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="text-steel hover:text-orange"
+                        onClick={() => {
+                          setEditingMod(m);
+                          setDialogOpen(true);
+                        }}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="text-steel hover:text-red-400"
                         onClick={() => remove.mutate(m.id)}
                       >
@@ -190,7 +213,11 @@ export function BuildSheetTab({
       <AddModDialog
         vehicleId={vehicleId}
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(o) => {
+          setDialogOpen(o);
+          if (!o) setEditingMod(null);
+        }}
+        mod={editingMod}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
@@ -14,13 +14,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ImageField } from "@/components/vehicles/image-field";
+import { BUILD_STATUSES } from "@/lib/constants";
 import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
+import type { BuildStatus } from "@prisma/client";
 
 export interface VehicleFormInitial {
   id: string;
   name: string;
+  buildStatus?: BuildStatus | null;
   nickname?: string | null;
   year?: number | null;
   make?: string | null;
@@ -32,7 +42,7 @@ export interface VehicleFormInitial {
   drivetrain?: string | null;
   stockHp?: number | null;
   currentHp?: number | null;
-  targetHp?: number | null;
+  targetHp?: string | null;
   stockTorque?: number | null;
   currentTorque?: number | null;
   factoryWeight?: number | null;
@@ -91,7 +101,15 @@ export function VehicleFormDialog({
   const qc = useQueryClient();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [buildStatus, setBuildStatus] = useState<BuildStatus>(
+    vehicle?.buildStatus ?? "OWNED"
+  );
   const isEdit = !!vehicle?.id;
+
+  // Reset the controlled select to match the vehicle each time the dialog opens.
+  useEffect(() => {
+    if (open) setBuildStatus(vehicle?.buildStatus ?? "OWNED");
+  }, [open, vehicle?.buildStatus]);
 
   const mutation = useMutation({
     mutationFn: async (data: Record<string, string | null>) => {
@@ -135,6 +153,7 @@ export function VehicleFormDialog({
         data[k] = null;
       }
     });
+    data.buildStatus = buildStatus;
     mutation.mutate(data);
   }
 
@@ -164,6 +183,25 @@ export function VehicleFormDialog({
             vehicleId={vehicle?.id}
           />
 
+          <div className="space-y-1.5">
+            <Label htmlFor="buildStatus">Build status</Label>
+            <Select
+              value={buildStatus}
+              onValueChange={(v) => setBuildStatus(v as BuildStatus)}
+            >
+              <SelectTrigger id="buildStatus">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BUILD_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label} — {s.description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field name="name" label="Name" required placeholder="Project GTI" span defaultValue={vehicle?.name} />
             <Field name="nickname" label="Nickname" placeholder="Wolfsburg" defaultValue={vehicle?.nickname ?? undefined} />
@@ -177,7 +215,7 @@ export function VehicleFormDialog({
             <Field name="drivetrain" label="Drivetrain" placeholder="FWD" defaultValue={vehicle?.drivetrain ?? undefined} />
             <Field name="stockHp" label="Stock HP" type="number" placeholder="210" defaultValue={vehicle?.stockHp ?? undefined} />
             <Field name="currentHp" label="Current HP" type="number" placeholder="210" defaultValue={vehicle?.currentHp ?? undefined} />
-            <Field name="targetHp" label="Target HP" type="number" placeholder="320" defaultValue={vehicle?.targetHp ?? undefined} />
+            <Field name="targetHp" label="Target HP" placeholder="320 or 1000+" defaultValue={vehicle?.targetHp ?? undefined} />
             <Field name="currentTorque" label="Torque (tq)" type="number" placeholder="350" defaultValue={vehicle?.currentTorque ?? undefined} />
             <Field name="factoryWeight" label="Factory Weight (lb)" type="number" placeholder="3100" defaultValue={vehicle?.factoryWeight ?? undefined} />
             <Field name="currentWeight" label="Current Weight (lb)" type="number" placeholder="3040" defaultValue={vehicle?.currentWeight ?? undefined} />

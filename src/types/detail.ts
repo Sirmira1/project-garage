@@ -23,6 +23,7 @@ export interface ModDTO {
   status: ModStatus;
   notes: string | null;
   partNumber: string | null;
+  productUrl: string | null;
 }
 
 export interface ServiceDTO {
@@ -96,6 +97,7 @@ export interface FitmentDTO {
 export interface VehicleDTO {
   id: string;
   name: string;
+  buildStatus: "OWNED" | "FUTURE" | "WISHLIST";
   nickname: string | null;
   year: number | null;
   make: string | null;
@@ -108,7 +110,7 @@ export interface VehicleDTO {
   drivetrain: string | null;
   stockHp: number | null;
   currentHp: number | null;
-  targetHp: number | null;
+  targetHp: string | null;
   stockTorque: number | null;
   currentTorque: number | null;
   factoryWeight: number | null;

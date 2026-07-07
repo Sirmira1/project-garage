@@ -33,6 +33,7 @@ const optionalDate = z
 
 export const vehicleSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
+  buildStatus: z.enum(["OWNED", "FUTURE", "WISHLIST"]).default("OWNED"),
   nickname: optionalString,
   year: optionalNumber,
   make: optionalString,
@@ -45,7 +46,7 @@ export const vehicleSchema = z.object({
   drivetrain: optionalString,
   stockHp: optionalNumber,
   currentHp: optionalNumber,
-  targetHp: optionalNumber,
+  targetHp: optionalString,
   stockTorque: optionalNumber,
   currentTorque: optionalNumber,
   factoryWeight: optionalNumber,
@@ -64,10 +65,19 @@ const modCategory = z.enum([
   "INTAKE",
   "EXHAUST",
   "TURBO",
+  "SUPERCHARGER",
+  "FUELING",
+  "ECU_TUNING",
+  "DRIVELINE",
+  "DIFFERENTIAL",
+  "CLUTCH",
+  "TRANSMISSION",
   "SUSPENSION",
   "WHEELS",
   "TIRES",
   "BRAKES",
+  "SAFETY",
+  "TRACTION",
   "EXTERIOR",
   "INTERIOR",
   "AUDIO",
@@ -107,10 +117,22 @@ export const modificationSchema = z.object({
   status: modStatus.default("WISHLIST"),
   notes: optionalString,
   partNumber: optionalString,
+  productUrl: optionalString,
 });
 
-export const modificationUpdateSchema = modificationSchema.partial().extend({
+export const modificationUpdateSchema = z.object({
   vehicleId: z.string().optional(),
+  name: z.string().trim().min(1, "Name is required").optional(),
+  category: modCategory.optional(),
+  area: carArea.optional(),
+  brand: optionalString,
+  description: optionalString,
+  cost: optionalNumber,
+  installDate: optionalDate,
+  status: modStatus.optional(),
+  notes: optionalString,
+  partNumber: optionalString,
+  productUrl: optionalString,
 });
 
 export type ModificationInput = z.infer<typeof modificationSchema>;

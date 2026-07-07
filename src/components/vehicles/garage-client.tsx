@@ -18,8 +18,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, Warehouse } from "lucide-react";
+import { BUILD_STATUSES } from "@/lib/constants";
+import type { BuildStatus } from "@prisma/client";
 
 type SortKey = "recent" | "name" | "hp" | "mods";
+type StatusKey = "all" | BuildStatus;
 
 export function GarageClient({
   initialVehicles,
@@ -30,6 +33,7 @@ export function GarageClient({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [makeFilter, setMakeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusKey>("all");
   const [sort, setSort] = useState<SortKey>("recent");
 
   useEffect(() => {
@@ -63,6 +67,8 @@ export function GarageClient({
       return hay.includes(query.toLowerCase());
     });
     if (makeFilter !== "all") list = list.filter((v) => v.make === makeFilter);
+    if (statusFilter !== "all")
+      list = list.filter((v) => v.buildStatus === statusFilter);
 
     list = [...list].sort((a, b) => {
       switch (sort) {
@@ -79,7 +85,7 @@ export function GarageClient({
       }
     });
     return list;
-  }, [vehicles, query, makeFilter, sort]);
+  }, [vehicles, query, makeFilter, statusFilter, sort]);
 
   return (
     <div className="mx-auto max-w-7xl animate-fade-in">
@@ -109,6 +115,22 @@ export function GarageClient({
               {makes.map((m) => (
                 <SelectItem key={m} value={m}>
                   {m}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as StatusKey)}
+          >
+            <SelectTrigger className="sm:w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {BUILD_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
                 </SelectItem>
               ))}
             </SelectContent>
