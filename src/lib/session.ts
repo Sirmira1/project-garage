@@ -8,8 +8,12 @@ export const DEMO_EMAIL = "demo@garage.dev";
  * out of the box. In production it returns null when unauthenticated.
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  const session = await auth();
-  if (session?.user?.id) return session.user.id;
+  try {
+    const session = await auth();
+    if (session?.user?.id) return session.user.id;
+  } catch {
+    return null;
+  }
   return null;
 }
 
