@@ -27,18 +27,31 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const userId = await getCurrentUserId();
-
+  let dashboardDataError = false;
   const vehicles = userId
-    ? await prisma.vehicle.findMany({
-        where: { userId },
-        include: { modifications: true, _count: { select: { modifications: true } } },
-        orderBy: { createdAt: "desc" },
-      })
+    ? await prisma.vehicle
+        .findMany({
+          where: { userId },
+          include: {
+            modifications: true,
+            _count: { select: { modifications: true } },
+          },
+          orderBy: { createdAt: "desc" },
+        })
+        .catch(() => {
+          dashboardDataError = true;
+          return [];
+        })
     : [];
 
   const allMods = vehicles.flatMap((v) => v.modifications);
   const expenses = userId
-    ? await prisma.expense.findMany({ where: { vehicle: { userId } } })
+    ? await prisma.expense
+        .findMany({ where: { vehicle: { userId } } })
+        .catch(() => {
+          dashboardDataError = true;
+          return [];
+        })
     : [];
   const stats = computeBuildStats(allMods, expenses);
   const byCategory = spendingByCategory(allMods, expenses);
@@ -62,8 +75,12 @@ export default async function DashboardPage() {
       {vehicles.length === 0 ? (
         <EmptyState
           icon={<Warehouse className="size-10" />}
-          title="Your garage is empty"
-          description="Add your first project car to start tracking mods, costs, and dyno pulls."
+          title={dashboardDataError ? "Could not load dashboard data" : "Your garage is empty"}
+          description={
+            dashboardDataError
+              ? "The app is running, but the database query failed in production. Check Vercel environment variables and function logs, then redeploy."
+              : "Add your first project car to start tracking mods, costs, and dyno pulls."
+          }
         >
           <Button asChild className="mt-2">
             <Link href="/garage?new=1">
